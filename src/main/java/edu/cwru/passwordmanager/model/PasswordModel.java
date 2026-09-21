@@ -10,6 +10,7 @@ import java.io.*;
 import java.security.SecureRandom;
 import java.security.spec.KeySpec;
 import java.util.Base64;
+import java.nio.charset.StandardCharsets;
 
 
 public class PasswordModel {
@@ -25,7 +26,7 @@ public class PasswordModel {
     static private byte [] passwordFileSalt;
 
     // TODO: You can set this to whatever you like to verify that the password the user entered is correct
-    private static String verifyString = "cookies";
+    private static String verifyString = "Peanuts";
 
     private void loadPasswords() {
         // TODO: Replace with loading passwords from file, you will want to add them to the passwords list defined above

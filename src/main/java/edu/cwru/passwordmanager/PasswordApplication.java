@@ -11,7 +11,7 @@ import java.io.IOException;
 
 public class PasswordApplication extends Application {
     // TODO: Give your app a anme!
-    final private String applicationName = "My Password Manager";
+    final private String applicationName = "Ravi and Pavel's Password Manager";
     static Stage primaryStage = null;
     @Override
     public void start(Stage stage) throws IOException {
