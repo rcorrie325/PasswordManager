@@ -12,7 +12,6 @@ import java.security.spec.KeySpec;
 import java.util.Base64;
 import java.nio.charset.StandardCharsets;
 
-
 public class PasswordModel {
     private ObservableList<Password> passwords = FXCollections.observableArrayList();
 
@@ -31,6 +30,23 @@ public class PasswordModel {
     private void loadPasswords() {
         // TODO: Replace with loading passwords from file, you will want to add them to the passwords list defined above
         // TODO: Tips: Use buffered reader, make sure you split on separator, make sure you decrypt password
+        try (BufferedReader read = new BufferedReader(new FileReader (passwordFile))) {
+            read.readLine();
+            String text;
+            while ((text = read.readLine()) != null) {
+                if (text.isEmpty()) {
+                    continue;
+                }
+                String[] words = text.split(separator, 2);
+                String label = words[0];
+                String password = words.length > 1 ? decrypt(words[1]) : "";
+
+                passwords.add(new Password(label, password));
+            }
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+            }
     }
 
     public PasswordModel() {
@@ -80,4 +96,21 @@ public class PasswordModel {
 
     // TODO: Tip: Break down each piece into individual methods, for example: generateSalt(), encryptPassword, generateKey(), saveFile, etc ...
     // TODO: Use these functions above, and it will make it easier! Once you know encryption, decryption, etc works, you just need to tie them in
+    private static byte[] createSalt(){
+        byte[] salt = new byte[16];
+        new SecureRandom().nextBytes(salt);
+        return salt;
+    }
+    private static String encrypt(String userText) throws Exception{
+        Cipher cipher = Cipher.getInstance("AES");
+        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(passwordFileKey, "AES"));
+        byte[] encrypted = cipher.doFinal(userText.getBytes(StandardCharsets.UTF_8));
+        return Base64.getEncoder().encodeToString(encrypted);
+    }
+    private static String decrypt(String encryptedText) throws Exception{
+        Cipher cipher = Cipher.getInstance("AES");
+        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(passwordFileSalt, "AES"));
+        byte[] decrypted = cipher.doFinal(Base64.getDecoder().decode(encryptedText));
+        return new String(decrypted, StandardCharsets.UTF_8);
+    }
 }
