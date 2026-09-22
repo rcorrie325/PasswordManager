@@ -35,4 +35,7 @@ build/
 .vscode/
 
 ### Mac OS ###
-.DS_Storepasswords.txt
+.DS_Store
+
+# Local password-manager data
+passwords.txt
