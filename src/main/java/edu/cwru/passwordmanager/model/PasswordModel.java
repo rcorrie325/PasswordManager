@@ -17,7 +17,7 @@ public class PasswordModel {
 
     private static final int ITERATIONS = 600_000;
     private static final int KEY_LENGTH = 256;
-    
+
     private ObservableList<Password> passwords = FXCollections.observableArrayList();
 
     // !!! DO NOT CHANGE - VERY IMPORTANT FOR GRADING !!!
@@ -92,10 +92,33 @@ public class PasswordModel {
     static public boolean verifyPassword(String password) {
         passwordFilePassword = password; // DO NOT CHANGE
 
-        // TODO: Check first line and use salt to verify that you can decrypt the token using the password from the user
-        // TODO: TIP !!! If you get an exception trying to decrypt, that also means they have the wrong passcode, return false!
+        try (BufferedReader read = new BufferedReader(new FileReader(passwordFile))) {
 
-        return false;
+            String firstLine = read.readLine();
+
+            if (firstLine == null) {
+                return false;
+            }
+
+            String[] parts = firstLine.split(separator, 2);
+
+            if (parts.length < 2) {
+                return false;
+            }
+
+
+            passwordFileSalt = Base64.getDecoder().decode(parts[0]);
+
+            passwordFileKey = generateKey(password, passwordFileSalt);
+
+            String decryptedVerifyString = decrypt(parts[1]);
+
+            //try peanuts, is true if AES key is correct
+            return decryptedVerifyString.equals(verifyString);
+
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public ObservableList<Password> getPasswords() {
@@ -104,20 +127,59 @@ public class PasswordModel {
 
     public void deletePassword(int index) {
         passwords.remove(index);
+        savePasswords();
+    }
 
-        // TODO: Remove it from file
+    //helper method persists the current GUI state to match memory
+    private void savePasswords() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(passwordFile))) {
+
+            // Rewrite the first line
+            String encodedSalt = Base64.getEncoder().encodeToString(passwordFileSalt);
+
+            String encryptedVerifyString = encrypt(verifyString);
+
+            writer.write(encodedSalt + separator + encryptedVerifyString);
+
+            writer.newLine();
+
+            // Rewrite all saved passwords
+            for (Password password : passwords) {
+
+                String encryptedPassword = encrypt(password.getPassword());
+
+                writer.write(password.getLabel() + separator + encryptedPassword);
+
+                writer.newLine();
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void updatePassword(Password password, int index) {
         passwords.set(index, password);
-
-        // TODO: Update the file with the new password information
+        savePasswords();
     }
+
+
+
 
     public void addPassword(Password password) {
         passwords.add(password);
 
-        // TODO: Add the new password to the file
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(passwordFile, true))) {
+
+            String encryptedPassword = encrypt(password.getPassword());
+
+            writer.write(password.getLabel() + separator + encryptedPassword);
+
+            writer.newLine();
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     // TODO: Tip: Break down each piece into individual methods, for example: generateSalt(), encryptPassword, generateKey(), saveFile, etc ...
