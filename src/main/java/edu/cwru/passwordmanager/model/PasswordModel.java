@@ -12,7 +12,12 @@ import java.security.spec.KeySpec;
 import java.util.Base64;
 import java.nio.charset.StandardCharsets;
 
+
 public class PasswordModel {
+
+    private static final int ITERATIONS = 600_000;
+    private static final int KEY_LENGTH = 256;
+    
     private ObservableList<Password> passwords = FXCollections.observableArrayList();
 
     // !!! DO NOT CHANGE - VERY IMPORTANT FOR GRADING !!!
@@ -60,7 +65,28 @@ public class PasswordModel {
     static public void initializePasswordFile(String password) throws IOException {
         passwordFile.createNewFile();
 
-        // TODO: Use password to create token and save in file with salt (TIP: Save these just like you would save password)
+        try {
+            passwordFilePassword = password;
+            passwordFileSalt = createSalt();
+
+            passwordFileKey = generateKey(password, passwordFileSalt);
+
+            //encrypt known word "Peanuts"
+            String encryptedVerifyString = encrypt(verifyString);
+
+
+            String encodedSalt = Base64.getEncoder().encodeToString(passwordFileSalt);
+
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(passwordFile))) {
+
+                writer.write(encodedSalt + separator + encryptedVerifyString);
+
+                writer.newLine();
+            }
+
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 
     static public boolean verifyPassword(String password) {
@@ -101,6 +127,16 @@ public class PasswordModel {
         new SecureRandom().nextBytes(salt);
         return salt;
     }
+    private static byte[] generateKey(String password, byte[] salt) throws Exception {
+
+        KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, ITERATIONS, KEY_LENGTH);
+
+        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+
+        return factory.generateSecret(spec).getEncoded();
+    }
+
+
     private static String encrypt(String userText) throws Exception{
         Cipher cipher = Cipher.getInstance("AES");
         cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(passwordFileKey, "AES"));
@@ -109,7 +145,7 @@ public class PasswordModel {
     }
     private static String decrypt(String encryptedText) throws Exception{
         Cipher cipher = Cipher.getInstance("AES");
-        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(passwordFileSalt, "AES"));
+        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(passwordFileKey, "AES"));
         byte[] decrypted = cipher.doFinal(Base64.getDecoder().decode(encryptedText));
         return new String(decrypted, StandardCharsets.UTF_8);
     }
